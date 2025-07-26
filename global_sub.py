@@ -23,8 +23,10 @@ def chart_1():
     global_trend = df_trend.groupby("TIME_PERIOD")["OBS_VALUE"].sum().reset_index()
     global_trend["OBS_VALUE"] = global_trend["OBS_VALUE"] / 1e9  # Dalam miliar USD
 
-    # === PLOT MENGGUNAKAN MATPLOTLIB ===
-    fig, ax = plt.subplots(figsize=(12, 6))
+    # === PLOT TRANSPARAN MENGGUNAKAN MATPLOTLIB ===
+    fig, ax = plt.subplots(figsize=(12, 6), facecolor='none')
+    ax.set_facecolor('none')  # Latar belakang dalam area plot transparan
+
     ax.plot(global_trend["TIME_PERIOD"], global_trend["OBS_VALUE"], marker='o',
             linewidth=2, color='royalblue', label='Total Subsidi Global')
 
@@ -58,5 +60,9 @@ def chart_1():
     ax.set_ylabel('Subsidi (Miliar USD)', fontsize=12)
     ax.grid(True, linestyle='--', alpha=0.6)
     ax.legend()
+
+    # Hapus frame spines jika ingin lebih bersih
+    for spine in ax.spines.values():
+        spine.set_visible(False)
 
     st.pyplot(fig)
