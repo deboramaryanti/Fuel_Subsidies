@@ -15,8 +15,8 @@ def tampilkan_analysis():
 
     # --- CHART 1: Tren Subsidi Global ---
     if pilihan_chart.startswith("Chart 1"):
-        import global_sub
-        global_sub.chart_1()
+        import tren_chart
+        tren_chart.chart_1()
     
     # --- CHART 2: Top 10 Negara per Tahun ---
     elif pilihan_chart.startswith("Chart 2"):
