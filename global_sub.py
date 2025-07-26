@@ -1,85 +1,62 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-from datetime import datetime
-import gdown
+import matplotlib.pyplot as plt
 
 def chart_1():
-    st.subheader("Tren Subsidi Energi (Berdasarkan Jenis)")
+    st.subheader("Tren Subsidi Energi Global (Total Implicit & Explicit)")
 
     # === LOAD DATA DARI GOOGLE DRIVE ===
     file_id = "15kwCyRwyenxTdiSINSOI7NLqI5LVN1Wz"
     download_url = f"https://drive.google.com/uc?id={file_id}"
     
-    data = pd.read_csv(download_url)
-
-    df = data[["TIME_PERIOD", "REF_AREA_NAME", "INDICATOR_NAME", "OBS_VALUE"]].dropna()
+    df = pd.read_csv(download_url)
+    df = df[["TIME_PERIOD", "REF_AREA_NAME", "INDICATOR_NAME", "OBS_VALUE"]].dropna()
     df["TIME_PERIOD"] = df["TIME_PERIOD"].astype(int)
-    df["OBS_VALUE"] = pd.to_numeric(df["OBS_VALUE"], errors="coerce") / 1e9  # dalam miliar USD
+    df["OBS_VALUE"] = pd.to_numeric(df["OBS_VALUE"], errors="coerce")
 
-    # === PERSIAPAN FILTER ===
-    tahun_min = df["TIME_PERIOD"].min()
-    tahun_max = df["TIME_PERIOD"].max()
-    negara_unik = sorted(df["REF_AREA_NAME"].unique())
-    jenis_unik = sorted(df["INDICATOR_NAME"].unique())
+    # === FILTER: Total Implicit & Explicit (seluruh dunia) ===
+    df_trend = df[
+        (df["INDICATOR_NAME"] == "Fossil Fuel Subsidies - Total Implicit and Explicit")
+    ]
 
-    # === SIDEBAR FILTER ===
-    with st.sidebar:
-        st.markdown("### Filter Data Subsidi")
-        negara_opsi = ["Seluruh Dunia"] + negara_unik
-        negara_dipilih = st.selectbox("Pilih Negara:", options=negara_opsi)
+    # Agregasi per tahun
+    global_trend = df_trend.groupby("TIME_PERIOD")["OBS_VALUE"].sum().reset_index()
+    global_trend["OBS_VALUE"] = global_trend["OBS_VALUE"] / 1e9  # Dalam miliar USD
 
-        jenis_dipilih = st.multiselect(
-            "Jenis Subsidi:",
-            options=jenis_unik,
-            default=[jenis_unik[0]],
-            key="jenis_subsidi"
+    # === PLOT MENGGUNAKAN MATPLOTLIB ===
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(global_trend["TIME_PERIOD"], global_trend["OBS_VALUE"], marker='o',
+            linewidth=2, color='royalblue', label='Total Subsidi Global')
+
+    # Tambahkan panah naik/turun dan label angka
+    for i in range(1, len(global_trend)):
+        x_prev = global_trend["TIME_PERIOD"].iloc[i - 1]
+        x_curr = global_trend["TIME_PERIOD"].iloc[i]
+        y_prev = global_trend["OBS_VALUE"].iloc[i - 1]
+        y_curr = global_trend["OBS_VALUE"].iloc[i]
+
+        arrow_color = 'green' if y_curr > y_prev else 'red'
+        ax.annotate(
+            '',
+            xy=(x_curr, y_curr),
+            xytext=(x_prev, y_prev),
+            arrowprops=dict(facecolor=arrow_color, shrink=0.05, width=2, headwidth=8)
         )
 
-    # === FILTER DATA ===
-    df_filtered = df[df["INDICATOR_NAME"].isin(jenis_dipilih)]
+    for i in range(len(global_trend)):
+        x = global_trend["TIME_PERIOD"].iloc[i]
+        y = global_trend["OBS_VALUE"].iloc[i]
+        ax.text(x, y + 20, f"{y:.0f}", ha='center', va='bottom', fontsize=9, color='black')
 
-    if negara_dipilih != "Seluruh Dunia":
-        df_filtered = df_filtered[df_filtered["REF_AREA_NAME"] == negara_dipilih]
+    # Tambahkan dummy plot untuk legend panah
+    ax.plot([], [], color='green', label='Naik')
+    ax.plot([], [], color='red', label='Turun')
 
-    if df_filtered.empty:
-        st.warning("Silakan pilih jenis subsidi untuk melihat tren.")
-        return
+    # Label dan styling
+    ax.set_title('Tren Subsidi Global: Total Implicit & Explicit (dalam Miliar USD)', fontsize=14)
+    ax.set_xlabel('Tahun', fontsize=12)
+    ax.set_ylabel('Subsidi (Miliar USD)', fontsize=12)
+    ax.grid(True, linestyle='--', alpha=0.6)
+    ax.legend()
 
-    # === AGREGASI UNTUK GRAFIK ===
-    df_agg = df_filtered.groupby(["TIME_PERIOD", "INDICATOR_NAME"])["OBS_VALUE"].sum().reset_index()
-
-    # === GRAFIK TREN LINE ===
-    fig = px.line(
-        df_agg,
-        x="TIME_PERIOD",
-        y="OBS_VALUE",
-        color="INDICATOR_NAME",
-        markers=True,
-        title=f"Tren Subsidi Energi - {'Global' if negara_dipilih == 'Seluruh Dunia' else negara_dipilih}",
-        labels={
-            "TIME_PERIOD": "Tahun",
-            "OBS_VALUE": "Subsidi (Miliar USD)",
-            "INDICATOR_NAME": "Jenis Subsidi"
-        }
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # === TOTAL TAHUNAN ===
-    total_tahunan = df_agg.groupby("TIME_PERIOD")["OBS_VALUE"].sum().reset_index()
-    total_tahunan.columns = ["Tahun", "Total Subsidi (Miliar USD)"]
-
-    st.write(f"### Total Subsidi per Tahun - {'Global' if negara_dipilih == 'Seluruh Dunia' else negara_dipilih}")
-    st.dataframe(total_tahunan, use_container_width=True)
-
-    # === TOTAL KESELURUHAN ===
-    total_semua = total_tahunan["Total Subsidi (Miliar USD)"].sum()
-
-    st.markdown(
-        f"""
-        <div style='background-color: #e6f7ff; border-radius: 10px; text-align: center; padding: 10px;'>
-            <h4 style='color: #007acc;'>Total Keseluruhan: {total_semua:,.2f} miliar USD</h4>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.pyplot(fig)
