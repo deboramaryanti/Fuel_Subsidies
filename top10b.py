@@ -2,13 +2,18 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
+import gdown
 
 def rata_sub():
     st.subheader("Visualisasi Rata-rata Subsidi Energi per Negara")
     
     # Load dan persiapan data
-    df = pd.read_csv("IMF_FFS.csv")
-    df = df[["TIME_PERIOD", "REF_AREA_NAME", "INDICATOR_NAME", "OBS_VALUE"]].dropna()
+    file_id = "15kwCyRwyenxTdiSINSOI7NLqI5LVN1Wz"
+    download_url = f"https://drive.google.com/uc?id={file_id}"
+    
+    data = pd.read_csv(download_url)
+
+    df = data[["TIME_PERIOD", "REF_AREA_NAME", "INDICATOR_NAME", "OBS_VALUE"]].dropna()
     df["TIME_PERIOD"] = df["TIME_PERIOD"].astype(int)
     df["OBS_VALUE"] = pd.to_numeric(df["OBS_VALUE"], errors="coerce") / 1e9  # miliar USD
 
