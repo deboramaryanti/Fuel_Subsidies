@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.express as px
 
 def chart_1():
     st.subheader("Tren Subsidi Energi Global (Total Implicit & Explicit)")
@@ -23,46 +23,36 @@ def chart_1():
     global_trend = df_trend.groupby("TIME_PERIOD")["OBS_VALUE"].sum().reset_index()
     global_trend["OBS_VALUE"] = global_trend["OBS_VALUE"] / 1e9  # Dalam miliar USD
 
-    # === PLOT TRANSPARAN MENGGUNAKAN MATPLOTLIB ===
-    fig, ax = plt.subplots(figsize=(12, 6), facecolor='none')
-    ax.set_facecolor('none')  # Latar belakang dalam area plot transparan
+    # === BUAT GRAFIK DENGAN PLOTLY ===
+    fig = px.line(
+        global_trend,
+        x="TIME_PERIOD",
+        y="OBS_VALUE",
+        markers=True,
+        title="Tren Subsidi Global: Total Implicit & Explicit (dalam Miliar USD)",
+        labels={
+            "TIME_PERIOD": "Tahun",
+            "OBS_VALUE": "Subsidi (Miliar USD)"
+        }
+    )
 
-    ax.plot(global_trend["TIME_PERIOD"], global_trend["OBS_VALUE"], marker='o',
-            linewidth=2, color='royalblue', label='Total Subsidi Global')
+    # === CUSTOMISASI TRANSPARANSI & GAYA ===
+    fig.update_layout(
+        plot_bgcolor='rgba(0,0,0,0)',  # transparan
+        paper_bgcolor='rgba(0,0,0,0)', # transparan
+        font=dict(color="black"),
+        xaxis=dict(showgrid=True, gridcolor='lightgray'),
+        yaxis=dict(showgrid=True, gridcolor='lightgray'),
+        legend=dict(bgcolor='rgba(0,0,0,0)'),
+        margin=dict(t=50, b=40, l=50, r=20),
+        height=500
+    )
 
-    # Tambahkan panah naik/turun dan label angka
-    for i in range(1, len(global_trend)):
-        x_prev = global_trend["TIME_PERIOD"].iloc[i - 1]
-        x_curr = global_trend["TIME_PERIOD"].iloc[i]
-        y_prev = global_trend["OBS_VALUE"].iloc[i - 1]
-        y_curr = global_trend["OBS_VALUE"].iloc[i]
+    # Tambahkan nilai teks di atas titik
+    fig.update_traces(
+        text=global_trend["OBS_VALUE"].round(0).astype(int).astype(str),
+        textposition="top center",
+        mode="lines+markers+text"
+    )
 
-        arrow_color = 'green' if y_curr > y_prev else 'red'
-        ax.annotate(
-            '',
-            xy=(x_curr, y_curr),
-            xytext=(x_prev, y_prev),
-            arrowprops=dict(facecolor=arrow_color, shrink=0.05, width=2, headwidth=8)
-        )
-
-    for i in range(len(global_trend)):
-        x = global_trend["TIME_PERIOD"].iloc[i]
-        y = global_trend["OBS_VALUE"].iloc[i]
-        ax.text(x, y + 20, f"{y:.0f}", ha='center', va='bottom', fontsize=9, color='black')
-
-    # Tambahkan dummy plot untuk legend panah
-    ax.plot([], [], color='green', label='Naik')
-    ax.plot([], [], color='red', label='Turun')
-
-    # Label dan styling
-    ax.set_title('Tren Subsidi Global: Total Implicit & Explicit (dalam Miliar USD)', fontsize=14)
-    ax.set_xlabel('Tahun', fontsize=12)
-    ax.set_ylabel('Subsidi (Miliar USD)', fontsize=12)
-    ax.grid(True, linestyle='--', alpha=0.6)
-    ax.legend()
-
-    # Hapus frame spines jika ingin lebih bersih
-    for spine in ax.spines.values():
-        spine.set_visible(False)
-
-    st.pyplot(fig)
+    st.plotly_chart(fig, use_container_width=True)
