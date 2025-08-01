@@ -6,7 +6,7 @@ def tren_chart_1():
     st.subheader("Tren Subsidi Energi Global (Total Implicit & Explicit)")
 
     # === LOAD DATA DARI GOOGLE DRIVE ===
-    file_id = "15kwCyRwyenxTdiSINSOI7NLqI5LVN1Wz"
+    file_id = "15OqsDUCTtkUBo0n0sM3tRWgYsDwAxBHB"
     download_url = f"https://drive.google.com/uc?id={file_id}"
     
     df = pd.read_csv(download_url)
